@@ -57,9 +57,11 @@ func funcIrate(vals []parser.Value, args parser.Expressions, enh *EvalNodeHelper
 }
 
 func instantValue(vals []parser.Value, out Vector, isRate bool) Vector {
+    // 获取 vals 数组中索引下标为0的值。 对其进行类型断言判断是矩阵(Matrix)类型则拷贝索引下标为0的标量组 
 	samples := vals[0].(Matrix)[0]
 	// No sense in trying to compute a rate without at least two points. Drop
-	// this Vector element.
+    // this Vector element.
+    // 判断获取的样本的数据点是否满足其需求(最小两个数据点)
 	if len(samples.Points) < 2 {
 		return out
 	}
@@ -67,7 +69,8 @@ func instantValue(vals []parser.Value, out Vector, isRate bool) Vector {
 	lastSample := samples.Points[len(samples.Points)-1]
 	previousSample := samples.Points[len(samples.Points)-2]
 
-	var resultValue float64
+    var resultValue float64
+    // 样本是正向递增 resultValue 存在为0 的可能
 	if isRate && lastSample.V < previousSample.V {
 		// Counter reset.
 		resultValue = lastSample.V
@@ -75,6 +78,7 @@ func instantValue(vals []parser.Value, out Vector, isRate bool) Vector {
 		resultValue = lastSample.V - previousSample.V
 	}
 
+    // 判断样本中是否为同一时间戳的值
 	sampledInterval := lastSample.T - previousSample.T
 	if sampledInterval == 0 {
 		// Avoid dividing by 0.
@@ -82,10 +86,12 @@ func instantValue(vals []parser.Value, out Vector, isRate bool) Vector {
 	}
 
 	if isRate {
-		// Convert to per-second.
+        // Convert to per-second.
+        //  resultValue = resultValue / (float64(sampledInterval) / 1000)
 		resultValue /= float64(sampledInterval) / 1000
 	}
 
+    // 如果存在增量，则把增量的结果集追加到矢量中
 	return append(out, Sample{
 		Point: Point{V: resultValue},
 	})
